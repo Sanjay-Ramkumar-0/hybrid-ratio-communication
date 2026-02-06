@@ -1,5 +1,3 @@
----
-
 # 📡 Hybrid Ratio-Based Low Power & Low-Latency Communication System
 
 This repository presents a novel physical-layer (PHY) communication architecture based on **self-referenced amplitude and frequency ratios** for ultra-low power and low-latency signaling.
@@ -288,8 +286,3 @@ Electronics & Communication Engineering
 # 🧠 Final Note
 
 This work explores an alternative communication paradigm where **meaning is encoded directly in physical signal relationships**, enabling ultra-low-power and low-latency operation — a key direction for next-generation embedded and semantic communication systems.
-
----
-
-
-Just say 👍
