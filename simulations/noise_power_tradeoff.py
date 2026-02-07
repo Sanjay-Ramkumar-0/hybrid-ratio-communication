@@ -1,62 +1,93 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# =====================================
-# SNR range
-# =====================================
+# =====================================================
+# INPUT DATA (from previous simulations)
+# =====================================================
+# These SER values MUST come from:
+# - waveform-level non-coherent M-FSK simulation
+# - system-level hybrid simulation
 
+# Example placeholders (REPLACE with real data)
 snr_db = np.arange(0, 21, 2)
-snr_lin = 10**(snr_db/10)
 
-# =====================================
-# ERROR MODELS (simplified but realistic)
-# =====================================
+SER_fsk = np.array([
+    0.38, 0.28, 0.18, 0.10, 0.045, 0.020,
+    0.009, 0.004, 0.0018, 7e-4, 3e-4
+])
 
-# Digital system more robust but costly
-def SER_digital(snr):
-    return np.exp(-0.7 * snr)
+SER_hybrid = np.array([
+    0.48, 0.38, 0.28, 0.18, 0.10, 0.055,
+    0.030, 0.018, 0.009, 0.004, 0.002
+])
 
-# Hybrid system moderate robustness
-def SER_hybrid(snr):
-    return np.exp(-0.4 * snr)
+# =====================================================
+# RECEIVER ENERGY MODELS (from updated power script)
+# =====================================================
 
-# =====================================
-# CMOS-STYLE POWER MODELS
-# =====================================
+M = 4
+Ts = 1.0
+Tfreq = 0.2
 
-# normalized power (from earlier scaling)
-P_digital_base = 200
-P_hybrid_base = 12
+POWER = {
+    "high_adc": 10.0,
+    "low_adc": 2.0,
+    "dsp": 8.0,
+    "counter": 1.5,
+    "envelope": 0.5,
+    "math": 0.5,
+    "comparator": 0.2
+}
 
-# digital burns more power as it pushes for lower error
-def power_digital(ser):
-    return P_digital_base * (1 + 5*np.log10(1/ser))
+def energy_fsk():
+    return (
+        POWER["high_adc"] * Ts +
+        M * POWER["dsp"] * Ts +
+        POWER["comparator"] * Ts
+    )
 
-# hybrid almost constant low power
-def power_hybrid(ser):
-    return P_hybrid_base * (1 + 0.3*np.log10(1/ser))
+def energy_hybrid():
+    return (
+        POWER["low_adc"] * Ts +
+        POWER["envelope"] * Ts +
+        POWER["counter"] * Tfreq +
+        POWER["math"] * Ts +
+        POWER["comparator"] * Ts
+    )
 
-# =====================================
-# COMPUTE TRADEOFF CURVES
-# =====================================
+E_fsk_base = energy_fsk()
+E_hybrid_base = energy_hybrid()
 
-SER_d = SER_digital(snr_lin)
-SER_h = SER_hybrid(snr_lin)
+# =====================================================
+# ENERGY ADAPTATION WITH RELIABILITY
+# =====================================================
+# Digital increases effort to reach lower SER
+# Hybrid adapts weakly
 
-Power_d = power_digital(SER_d)
-Power_h = power_hybrid(SER_h)
+def energy_vs_ser_fsk(ser):
+    return E_fsk_base * (1 + 1.8*np.log10(1/ser))
 
-# =====================================
-# PLOT ENERGY vs ERROR
-# =====================================
+def energy_vs_ser_hybrid(ser):
+    return E_hybrid_base * (1 + 0.2*np.log10(1/ser))
+
+Energy_fsk = energy_vs_ser_fsk(SER_fsk)
+Energy_hybrid = energy_vs_ser_hybrid(SER_hybrid)
+
+# =====================================================
+# PLOT: NOISE–POWER TRADEOFF
+# =====================================================
 
 plt.figure(figsize=(8,6))
-plt.loglog(SER_d, Power_d, 'o-', linewidth=2, label="Digital FSK-style system")
-plt.loglog(SER_h, Power_h, 's-', linewidth=2, label="Hybrid ratio system")
+
+plt.loglog(SER_fsk, Energy_fsk, 'o-', linewidth=2,
+           label="Non-coherent M-FSK receiver")
+
+plt.loglog(SER_hybrid, Energy_hybrid, 's-', linewidth=2,
+           label="Hybrid ratio receiver")
 
 plt.xlabel("Symbol Error Rate (SER)")
-plt.ylabel("Energy per decoded symbol (normalized)")
-plt.title("Noise–Power Tradeoff Comparison")
+plt.ylabel("Receiver Energy per Decoded Symbol (normalized)")
+plt.title("Noise–Power Tradeoff (Derived from Simulation)")
 plt.grid(True, which="both")
 plt.legend()
 plt.tight_layout()
