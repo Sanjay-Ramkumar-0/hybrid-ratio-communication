@@ -90,13 +90,13 @@ To ensure a fair and defensible comparison, the baseline system is defined rigor
 
 ### Transmitted Signal
 
-[
-s_k(t) = \sqrt{\frac{2E_s}{T_s}} \cos(2\pi f_k t), \quad 0 \le t < T_s
-]
+The transmitted waveform is:
 
-[
-f_k = f_c + k \Delta f
-]
+`s_k(t) = sqrt(2·E_s / T_s) · cos(2π·f_k·t),   0 ≤ t < T_s`
+
+with frequency mapping:
+
+`f_k = f_c + k·Δf`
 
 ### Channel Model
 
