@@ -1,238 +1,324 @@
-# 📡 Hybrid Ratio-Based Low Power & Low-Latency Communication System
+# Hybrid Ratio-Based Low-Power and Low-Latency Communication System
 
-This repository presents a novel physical-layer (PHY) communication architecture based on **self-referenced amplitude and frequency ratios** for ultra-low power and low-latency signaling.
+## Overview
 
-Unlike conventional digital communication systems that rely on high-resolution ADCs, heavy DSP processing, and packet-based decoding, the proposed method directly encodes information in **analog signal relationships**, enabling:
+This repository investigates a **ratio-based physical-layer communication architecture** designed to prioritize **receiver-side energy efficiency and low decoding latency** rather than spectral efficiency or Shannon-limit performance.
 
-• drastically reduced power consumption
-• near-instant decoding latency
-• hardware-friendly receiver design
+The proposed approach encodes information using **self-referenced amplitude and frequency ratios**, allowing decoding without reliance on absolute signal levels or carrier phase recovery. The system is evaluated at a **system and waveform level** and compared against a rigorously defined **non-coherent M-ary Frequency Shift Keying (M-FSK)** baseline.
 
-The system is especially suitable for:
-
-IoT devices, safety-critical signaling, embedded systems, and energy-constrained communication.
+The work is intended for **short-range, low-data-rate, energy-constrained communication scenarios**, such as IoT sensing, embedded control signaling, and low-power beacons.
 
 ---
 
-# 🔍 Core Concept
+## Motivation
 
-Traditional communication systems transmit data using:
+Conventional digital communication systems achieve robustness through:
 
-• absolute amplitude levels
-• discrete frequency tones
-• phase modulation
-• heavy digital processing
+* High-resolution ADCs
+* Continuous DSP processing
+* Frame-based decoding and synchronization
 
-These approaches require precise calibration and large computational effort.
+While effective, these mechanisms impose **significant power and latency overhead**, which is undesirable in ultra-low-power or real-time systems.
+
+This project explores an alternative design philosophy:
+
+> **Shift complexity away from continuous digital processing and toward simple, self-referenced physical relationships.**
 
 ---
 
-## ✅ Proposed Approach: Self-Referenced Ratio Encoding
+## Core Idea: Self-Referenced Ratio Encoding
+
+### Transmitted Signals
 
 Two signals are transmitted simultaneously:
 
-Signal 1 → reference
-Signal 2 → scaled version
+* A **reference signal**
+* A **scaled signal**
 
-### Information is encoded as:
+Information is encoded in the **ratio** between these signals.
 
-Amplitude Ratio:
+### Amplitude Ratio (Coarse Information)
 
-```
-A2 / A1 = n
-```
+[
+\frac{A_2}{A_1} = n
+]
 
-Frequency Ratio:
+* Provides a coarse symbol estimate
+* Does not require absolute gain calibration
+* Sensitive to path mismatch (acknowledged)
 
-```
-f2 / f1 = n + δ
-```
+### Frequency Ratio (Fine Information)
 
-Where:
+[
+\frac{f_2}{f_1} = n + \delta
+]
 
-n = coarse symbol value
-δ = fine refinement
+* Refines the estimate within a bounded region
+* Estimated non-coherently
+* Requires finite observation time
 
-Because the receiver decodes **ratios instead of absolute values**, the system becomes:
+### Hybrid Decoding Principle
 
-✔ robust to gain drift
-✔ immune to absolute voltage scaling
-✔ simpler to implement in hardware
-
----
-
-# 🎯 Design Goals
-
-This work does NOT aim to outperform modern digital systems in raw noise robustness.
-
-Instead it targets:
-
-✅ Ultra-low power consumption
-✅ Ultra-low decoding latency
-✅ Favorable noise–energy tradeoff
-✅ Hardware simplicity
+The receiver first obtains a **coarse amplitude-based anchor**, then refines the estimate using a **bounded frequency ratio**, preventing large symbol jumps due to noise.
 
 ---
 
-# 📁 Repository Structure
+## Design Objectives (Explicit Scope)
+
+This work **does not aim** to:
+
+* Maximize spectral efficiency
+* Approach Shannon capacity
+* Compete with high-throughput digital standards
+
+Instead, it targets:
+
+* **Low receiver-side energy consumption**
+* **Low end-to-end decoding latency**
+* **Architectural simplicity**
+* **Favorable noise–energy tradeoffs**
+
+---
+
+## Baseline System Definition: Non-Coherent M-FSK
+
+To ensure a fair and defensible comparison, the baseline system is defined rigorously.
+
+### Modulation
+
+* **Non-coherent orthogonal M-FSK**
+* Orthogonal spacing:
+  [
+  \Delta f = \frac{1}{T_s}
+  ]
+
+### Transmitted Signal
+
+[
+s_k(t) = \sqrt{\frac{2E_s}{T_s}} \cos(2\pi f_k t), \quad 0 \le t < T_s
+]
+
+[
+f_k = f_c + k \Delta f
+]
+
+### Channel Model
+
+[
+r(t) = s_k(t) + n(t)
+]
+
+* Additive White Gaussian Noise (AWGN)
+* No fading or interference
+
+### Receiver
+
+* Non-coherent energy detection
+* M parallel correlators (I/Q)
+* Full-symbol integration
+
+This baseline reflects **practical low-power digital receivers** that avoid carrier phase recovery but still rely on high-rate sampling and DSP.
+
+---
+
+## Simulation Structure
 
 ```
 simulations/
-    noise_robustness.py
-    power_efficiency.py
-    cmos_scaling.py
-    latency.py
-    noise_power_tradeoff.py
+├── noise_robustness_fsk_waveform.py
+├── power_efficiency.py
+├── latency.py
+├── noise_power_tradeoff.py
+```
 
+```
 results/
-    (generated plots)
-
-README.md
-requirements.txt
+├── noise_vs_snr.png
+├── power_efficiency.png
+├── latency.png
+├── noise_power_tradeoff.png
 ```
 
 ---
 
-# 📊 Simulation Overview & What Each File Proves
+## Simulation Descriptions and What They Prove
 
 ---
 
-## 📡 1. noise_robustness.py
+### 1. Noise Robustness (`noise_robustness_fsk_waveform.py`)
 
-### Symbol Error Rate vs SNR
+**Purpose:**
+Compare symbol error rate (SER) under AWGN.
 
-This simulation compares:
+**Methodology:**
 
-• Conventional FSK-style digital demodulation
-• Proposed hybrid ratio decoding
+* FSK: waveform-level simulation with non-coherent energy detection
+* Hybrid: system-level ratio decoding
 
-Under AWGN noise conditions.
+**Result:**
 
-### What it proves:
+* FSK achieves superior raw noise robustness
+* Hybrid exhibits higher SER at low SNR
 
-• Digital systems achieve higher raw noise robustness
-• Hybrid ratio scheme is moderately less robust
-
-This is expected and honest.
-
-It establishes the **tradeoff foundation** for power and latency gains.
+**Interpretation:**
+This result is expected and establishes the **tradeoff foundation** for power and latency advantages.
 
 ---
 
-## 🔋 2. power_efficiency.py
+### 2. Receiver Power Efficiency (`power_efficiency.py`)
 
-### Energy per Decoded Symbol
+**Purpose:**
+Compare **receiver-side energy per decoded symbol**.
 
-This simulation models block-level energy consumption of:
+**Modeling Approach:**
 
-• High-resolution ADC + DSP digital receiver
-• Low-complexity hybrid ratio receiver
+* Block-level energy model
+* Energy = Power × Active Time
+* Explicit accounting for:
 
-### What it proves:
+  * ADC activity
+  * DSP correlators
+  * Frequency counters
+  * Observation windows
 
-• Hybrid receiver consumes orders of magnitude less energy
-• Energy remains nearly constant across reliability levels
-• Digital systems burn rapidly increasing power to improve accuracy
+**Result:**
 
-This is the primary strength of the proposed architecture.
+* M-FSK energy scales with:
 
----
+  * Number of correlators
+  * Symbol duration
+* Hybrid energy remains significantly lower
 
-## ⚡ 3. cmos_scaling.py
-
-### CMOS Dynamic Power Model
-
-Uses the realistic CMOS relationship:
-
-```
-P ∝ C · V² · f
-```
-
-Where switching capacitance and operating frequency represent hardware complexity.
-
-### What it proves:
-
-• DSP-based digital receivers scale very poorly with speed
-• Hybrid ratio receiver scales gently
-• Hardware-friendly design is inherently power efficient
-
-This connects the work to real silicon behavior.
+**Claim Scope:**
+Only **receiver-side baseband processing energy** is considered.
 
 ---
 
-## ⏱ 4. latency.py
+### 3. Latency Analysis (`latency.py`)
 
-### Decoding Delay Comparison
+**Purpose:**
+Compare decoding delay under realistic receiver assumptions.
 
-Models:
+**Latency Components:**
 
-• Packet/frame-based digital decoding
-• Single-symbol hybrid decoding
+* Synchronization overhead (FSK)
+* Symbol observation time
+* Frequency estimation time (hybrid)
+* Retransmission probability
 
-Including retry effects under noise.
+**Key Result:**
 
-### What it proves:
-
-• Digital systems require tens to hundreds of symbol durations
-• Hybrid system decodes in ~1–2 symbol times
-
-This enables real-time and safety-critical communication.
-
----
-
-## ⚖️ 5. noise_power_tradeoff.py
-
-### Energy vs Reliability
-
-Combines:
-
-Noise performance + power consumption
-
-into a single system-level efficiency curve.
-
-### What it proves:
-
-• Digital systems achieve reliability only by burning massive energy
-• Hybrid system achieves useful reliability at minimal energy
-
-This demonstrates superior **noise–energy efficiency**.
+* FSK latency dominated by framing and full-symbol integration
+* Hybrid latency dominated by short observation windows
 
 ---
 
-# 📈 Key Results Summary
+### 4. Noise–Power Tradeoff (`noise_power_tradeoff.py`)
 
-| Metric                        | Digital System | Hybrid Ratio System      |
-| ----------------------------- | -------------- | ------------------------ |
-| Noise Robustness              | High           | Moderate                 |
-| Power Consumption             | Very High      | Very Low                 |
-| Latency                       | High           | Extremely Low            |
-| Hardware Complexity           | Heavy DSP      | Simple Analog + Counters |
-| Energy–Reliability Efficiency | Poor           | Excellent                |
+**Purpose:**
+Combine **measured SER** with **receiver energy models**.
 
----
+**Important Note:**
 
-# 🚀 Why This Matters
+* SER values are derived from simulations
+* No assumed exponential error models
 
-Modern communication increasingly prioritizes:
+**Result:**
 
-• energy efficiency
-• real-time response
-• hardware simplicity
-
-over pure data rate.
-
-Applications include:
-
-✔ IoT sensors
-✔ automotive safety systems
-✔ embedded control networks
-✔ low-power ASIC communication
-
-This work introduces a **new physical-layer primitive** optimized for these domains.
+* To achieve a given reliability, the hybrid receiver consumes significantly less energy
+* Demonstrates architectural efficiency rather than raw robustness
 
 ---
 
-# ⚙️ Installation
+## Phase-2 Analytical Validation
+
+To justify simulation assumptions, three analytical bounds are included.
+
+---
+
+### (a) Frequency Estimation Latency Bound
+
+Frequency estimation requires observing multiple signal cycles:
+
+[
+T_{\text{freq}} = N_{\text{cycles}} \cdot \frac{1}{f}
+]
+
+* (N_{\text{cycles}}) typically 8–20
+* This bound is explicitly included in latency modeling
+
+---
+
+### (b) Frequency Estimation Accuracy Bound (CRLB Intuition)
+
+For non-coherent frequency estimation in AWGN:
+
+[
+\mathrm{Var}(\hat{f}) \ge \frac{K}{T_{\text{obs}}^2 \cdot \text{SNR}}
+]
+
+This establishes an **accuracy–latency tradeoff**, justifying the chosen observation window.
+
+---
+
+### (c) Oscillator Stability Bound
+
+Oscillator drift:
+
+[
+\Delta f = f \cdot \text{ppm} \cdot 10^{-6}
+]
+
+Design requirement:
+
+[
+\Delta f \cdot T_{\text{freq}} \ll 1
+]
+
+This implies that **short-term stability**, not long-term accuracy, is sufficient.
+
+---
+
+## Simulation Scope and Limitations
+
+The simulations are intended to evaluate **architectural tradeoffs**, not circuit-level performance.
+
+**Limitations:**
+
+* AWGN channel only
+* No multipath fading or interference
+* No Doppler modeling
+* No PA non-linearity
+* No ADC quantization modeling
+* Transmitter energy not optimized
+* Not intended to approach Shannon capacity
+
+These assumptions allow isolation of **power and latency effects**.
+
+---
+
+## Key Takeaways
+
+| Aspect           | FSK        | Hybrid Ratio |
+| ---------------- | ---------- | ------------ |
+| Noise robustness | High       | Moderate     |
+| Receiver energy  | High       | Low          |
+| Latency          | High       | Very low     |
+| DSP complexity   | High       | Minimal      |
+| Design goal      | Robustness | Efficiency   |
+
+---
+
+## Intended Use Cases
+
+* Ultra-low-power IoT nodes
+* Embedded control signaling
+* Safety or event-triggered communication
+* Short-range sensor networks
+
+---
+
+## Installation
 
 ```bash
 pip install -r requirements.txt
@@ -240,49 +326,24 @@ pip install -r requirements.txt
 
 ---
 
-# ▶️ Running Simulations
-
-Example:
+## Running Simulations
 
 ```bash
-python simulations/noise_robustness.py
+python simulations/noise_robustness_fsk_waveform.py
+python simulations/power_efficiency.py
+python simulations/latency.py
+python simulations/noise_power_tradeoff.py
 ```
 
-Each script generates its corresponding plot in `results/`.
+---
+
+## Author
+
+**Sanjay Ramkumar**
+Electronics and Communication Engineering
 
 ---
 
-# 📜 Research Perspective
+## Final Note
 
-This project demonstrates:
-
-• a new ratio-based signaling architecture
-• quantitative system-level evaluation
-• realistic power modeling
-• latency-aware communication design
-
-The results emphasize **engineering tradeoffs**, not unrealistic superiority.
-
----
-
-# 📌 Future Extensions
-
-Optional improvements include:
-
-• fading channel models
-• hardware prototype
-• multi-symbol payload encoding
-• ASIC area modeling
-
----
-
-# ✍️ Author
-
-Sanjay Ramkumar
-Electronics & Communication Engineering
-
----
-
-# 🧠 Final Note
-
-This work explores an alternative communication paradigm where **meaning is encoded directly in physical signal relationships**, enabling ultra-low-power and low-latency operation — a key direction for next-generation embedded and semantic communication systems.
+This repository explores a **receiver-centric communication architecture** where **energy efficiency and latency** are prioritized over spectral efficiency. The results demonstrate that meaningful communication is possible using simple physical relationships when system-level tradeoffs are explicitly acknowledged.
