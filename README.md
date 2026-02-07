@@ -84,9 +84,7 @@ To ensure a fair and defensible comparison, the baseline system is defined rigor
 
 * **Non-coherent orthogonal M-FSK**
 * Orthogonal spacing:
-  [
-  \Delta f = \frac{1}{T_s}
-  ]
+  Δf = 1 / T_s
 
 ### Transmitted Signal
 
