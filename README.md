@@ -39,9 +39,7 @@ Information is encoded in the **ratio** between these signals.
 
 ### Amplitude Ratio (Coarse Information)
 
-[
-\frac{A_2}{A_1} = n
-]
+A₂ / A₁ = n
 
 * Provides a coarse symbol estimate
 * Does not require absolute gain calibration
@@ -49,9 +47,7 @@ Information is encoded in the **ratio** between these signals.
 
 ### Frequency Ratio (Fine Information)
 
-[
-\frac{f_2}{f_1} = n + \delta
-]
+f₂ / f₁ = n + δ
 
 * Refines the estimate within a bounded region
 * Estimated non-coherently
@@ -240,11 +236,9 @@ To justify simulation assumptions, three analytical bounds are included.
 
 Frequency estimation requires observing multiple signal cycles:
 
-[
-T_{\text{freq}} = N_{\text{cycles}} \cdot \frac{1}{f}
-]
+Var(f̂) ≥ K / (T_obs² · SNR)
 
-* (N_{\text{cycles}}) typically 8–20
+* N_cycles typically 8–20
 * This bound is explicitly included in latency modeling
 
 ---
@@ -253,9 +247,7 @@ T_{\text{freq}} = N_{\text{cycles}} \cdot \frac{1}{f}
 
 For non-coherent frequency estimation in AWGN:
 
-[
-\mathrm{Var}(\hat{f}) \ge \frac{K}{T_{\text{obs}}^2 \cdot \text{SNR}}
-]
+Var(f̂) ≥ K / (T_obs² · SNR)
 
 This establishes an **accuracy–latency tradeoff**, justifying the chosen observation window.
 
@@ -265,15 +257,11 @@ This establishes an **accuracy–latency tradeoff**, justifying the chosen obser
 
 Oscillator drift:
 
-[
-\Delta f = f \cdot \text{ppm} \cdot 10^{-6}
-]
+Δf = f · ppm · 10⁻⁶
 
 Design requirement:
 
-[
-\Delta f \cdot T_{\text{freq}} \ll 1
-]
+Δf · T_freq ≪ 1
 
 This implies that **short-term stability**, not long-term accuracy, is sufficient.
 
