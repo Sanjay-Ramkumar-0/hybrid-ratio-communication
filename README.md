@@ -2,324 +2,303 @@
 
 ## Overview
 
-This repository investigates a **ratio-based physical-layer communication architecture** designed to prioritize **receiver-side energy efficiency and low decoding latency** rather than spectral efficiency or Shannon-limit performance.
+This repository explores a **receiver-centric physical-layer communication architecture** designed for scenarios where:
 
-The proposed approach encodes information using **self-referenced amplitude and frequency ratios**, allowing decoding without reliance on absolute signal levels or carrier phase recovery. The system is evaluated at a **system and waveform level** and compared against a rigorously defined **non-coherent M-ary Frequency Shift Keying (M-FSK)** baseline.
+* **Receiver energy consumption is critical**
+* **Decoding latency must be very low**
+* **Data rates are modest**
+* **Channel conditions are controlled or short-range**
 
-The work is intended for **short-range, low-data-rate, energy-constrained communication scenarios**, such as IoT sensing, embedded control signaling, and low-power beacons.
+Instead of relying on continuous high-rate ADC sampling and heavy digital signal processing (DSP), the proposed approach encodes information using **self-referenced amplitude and frequency ratios**. This allows symbol decisions to be made using **simple analog and mixed-signal operations**, trading some noise robustness for substantial gains in **energy efficiency and latency**.
+
+The system is evaluated using a combination of:
+
+* **Waveform-level simulations** (for a digital baseline)
+* **System-level modeling** (for the proposed architecture)
+
+and compared against a rigorously defined **non-coherent M-ary FSK (M-FSK)** receiver.
 
 ---
 
-## Motivation
+## Design Philosophy
 
-Conventional digital communication systems achieve robustness through:
+Conventional low-power digital receivers (including non-coherent ones) still rely on:
 
-* High-resolution ADCs
-* Continuous DSP processing
+* High-rate ADCs
+* Continuous DSP
 * Frame-based decoding and synchronization
 
-While effective, these mechanisms impose **significant power and latency overhead**, which is undesirable in ultra-low-power or real-time systems.
+In ultra-low-power systems (e.g., wake-up radios, IoT beacons), this **receiver overhead can dominate total energy consumption**.
 
-This project explores an alternative design philosophy:
+This project investigates a different design philosophy:
 
-> **Shift complexity away from continuous digital processing and toward simple, self-referenced physical relationships.**
+> *If moderate noise robustness is acceptable, can we drastically simplify the receiver by encoding information in physical signal relationships instead of absolute values?*
+
+The answer explored here is **yes — within a clearly bounded scope**.
 
 ---
 
-## Core Idea: Self-Referenced Ratio Encoding
+## Baseline System: Non-Coherent M-FSK
 
-### Transmitted Signals
+To ensure a fair and defensible comparison, the baseline system is **precisely defined and simulated at the waveform level**.
+
+### Modulation
+
+* Non-coherent M-ary Frequency Shift Keying
+* Orthogonal spacing:
+  **Δf = 1 / Tₛ**
+
+### Transmitted Signal
+
+For symbol `k ∈ {0, 1, …, M−1}`:
+
+```
+s_k(t) = sqrt(2·E_s / T_s) · cos(2π·f_k·t),   0 ≤ t < T_s
+```
+
+where:
+
+```
+f_k = f_c + k·Δf
+```
+
+### Channel Model
+
+* Additive White Gaussian Noise (AWGN)
+* Used as a clean reference case
+
+### Receiver
+
+* Non-coherent energy detection
+* M parallel I/Q correlators
+* Full-symbol integration
+
+This baseline reflects **practical low-complexity digital receivers** that avoid carrier phase recovery but still incur significant ADC and DSP energy.
+
+---
+
+## Proposed Hybrid Ratio-Based Scheme
+
+### Core Concept
 
 Two signals are transmitted simultaneously:
 
 * A **reference signal**
 * A **scaled signal**
 
-Information is encoded in the **ratio** between these signals.
+Information is encoded in **ratios**, not absolute values.
+
+---
 
 ### Amplitude Ratio (Coarse Information)
 
+```
 A₂ / A₁ = n
+```
 
 * Provides a coarse symbol estimate
 * Does not require absolute gain calibration
-* Sensitive to path mismatch (acknowledged)
+* Sensitive to channel variations (discussed below)
+
+---
 
 ### Frequency Ratio (Fine Information)
 
+```
 f₂ / f₁ = n + δ
+```
 
 * Refines the estimate within a bounded region
 * Estimated non-coherently
 * Requires finite observation time
 
-### Hybrid Decoding Principle
+---
 
-The receiver first obtains a **coarse amplitude-based anchor**, then refines the estimate using a **bounded frequency ratio**, preventing large symbol jumps due to noise.
+### Hybrid Decoding Logic
+
+1. Decode a coarse symbol using the amplitude ratio
+2. Use this estimate to bound the frequency ratio
+3. Make a final symbol decision
+
+This bounded approach prevents large symbol jumps due to noise.
 
 ---
 
-## Design Objectives (Explicit Scope)
+## Practical Design Considerations and System Behavior
 
-This work **does not aim** to:
-
-* Maximize spectral efficiency
-* Approach Shannon capacity
-* Compete with high-throughput digital standards
-
-Instead, it targets:
-
-* **Low receiver-side energy consumption**
-* **Low end-to-end decoding latency**
-* **Architectural simplicity**
-* **Favorable noise–energy tradeoffs**
+This section explains how the system behaves under realistic conditions and clarifies its applicability.
 
 ---
 
-## Baseline System Definition: Non-Coherent M-FSK
+### Amplitude Ratio Sensitivity to Channel Variations
 
-To ensure a fair and defensible comparison, the baseline system is defined rigorously.
-
-### Modulation
-
-* **Non-coherent orthogonal M-FSK**
-* Orthogonal spacing:
-  Δf = 1 / T_s
-
-### Transmitted Signal
-
-The transmitted waveform is:
-
-`s_k(t) = sqrt(2·E_s / T_s) · cos(2π·f_k·t),   0 ≤ t < T_s`
-
-with frequency mapping:
-
-`f_k = f_c + k·Δf`
-
-### Channel Model
-
-[
-r(t) = s_k(t) + n(t)
-]
-
-* Additive White Gaussian Noise (AWGN)
-* No fading or interference
-
-### Receiver
-
-* Non-coherent energy detection
-* M parallel correlators (I/Q)
-* Full-symbol integration
-
-This baseline reflects **practical low-power digital receivers** that avoid carrier phase recovery but still rely on high-rate sampling and DSP.
-
----
-
-## Simulation Structure
+In real wireless channels, the reference and scaled signals may experience **independent fading**:
 
 ```
-simulations/
-├── noise_robustness_fsk_waveform.py
-├── power_efficiency.py
-├── latency.py
-├── noise_power_tradeoff.py
+A₂_rx / A₁_rx = (|h₂| / |h₁|) · (A₂_tx / A₁_tx)
 ```
 
-```
-results/
-├── noise_vs_snr.png
-├── power_efficiency.png
-├── latency.png
-├── noise_power_tradeoff.png
-```
+To study this effect:
+
+* Independent Rayleigh fading is applied to the amplitude paths
+* Symbol error rate (SER) is re-evaluated
+
+**Observation:**
+
+* The amplitude ratio becomes unreliable under independent fading
+* Performance degrades rapidly compared to M-FSK
+
+**Implication:**
+
+> The amplitude-based component is best suited for **short-range, line-of-sight, or controlled propagation environments** where channel gains are correlated or quasi-static.
+
+This explicitly bounds the applicability of the scheme.
 
 ---
 
-## Simulation Descriptions and What They Prove
+### Frequency Ratio Estimation and Observation-Time Tradeoff
+
+Frequency estimation is performed using a **non-coherent zero-crossing method**, chosen for:
+
+* Low complexity
+* Hardware friendliness
+* No carrier phase recovery
+
+Monte-Carlo simulations show:
+
+* Short observation windows → high estimation variance
+* Longer observation windows → improved accuracy
+
+This establishes a clear **latency–accuracy tradeoff**.
+
+A fixed observation length of **12 cycles** is selected as a reasonable operating point and is used consistently in latency modeling.
 
 ---
 
-### 1. Noise Robustness (`noise_robustness_fsk_waveform.py`)
+### Receiver Energy Modeling Approach
 
-**Purpose:**
-Compare symbol error rate (SER) under AWGN.
+Receiver energy is modeled at the **architectural block level**, focusing on relative scaling trends rather than absolute power values.
 
-**Methodology:**
+Key assumptions:
 
-* FSK: waveform-level simulation with non-coherent energy detection
-* Hybrid: system-level ratio decoding
+* High-rate ADCs dominate energy consumption
+* Continuous DSP is costly
+* Counters and envelope detectors are lightweight
 
-**Result:**
-
-* FSK achieves superior raw noise robustness
-* Hybrid exhibits higher SER at low SNR
-
-**Interpretation:**
-This result is expected and establishes the **tradeoff foundation** for power and latency advantages.
+This abstraction is appropriate for **system-level architectural comparison** and is consistent with trends reported in ADC and low-power receiver literature.
 
 ---
 
-### 2. Receiver Power Efficiency (`power_efficiency.py`)
+### Transmitter Assumptions and System Asymmetry
 
-**Purpose:**
-Compare **receiver-side energy per decoded symbol**.
+The proposed scheme transmits two signals simultaneously, which may increase transmitter complexity.
 
-**Modeling Approach:**
+This work intentionally targets **asymmetric systems**, such as:
 
-* Block-level energy model
-* Energy = Power × Active Time
-* Explicit accounting for:
+* Wake-up radios
+* Beacons
+* Infrastructure-powered transmitters
 
-  * ADC activity
-  * DSP correlators
-  * Frequency counters
-  * Observation windows
-
-**Result:**
-
-* M-FSK energy scales with:
-
-  * Number of correlators
-  * Symbol duration
-* Hybrid energy remains significantly lower
-
-**Claim Scope:**
-Only **receiver-side baseband processing energy** is considered.
+In these cases, **receiver energy dominates system cost**, and transmitter optimization is acknowledged as a tradeoff and left for future work.
 
 ---
 
-### 3. Latency Analysis (`latency.py`)
+### Synchronization and Timing Considerations
 
-**Purpose:**
-Compare decoding delay under realistic receiver assumptions.
+Although the hybrid receiver operates on a symbol basis, it still requires:
 
-**Latency Components:**
+* Symbol timing
+* Observation window alignment
 
-* Synchronization overhead (FSK)
-* Symbol observation time
-* Frequency estimation time (hybrid)
-* Retransmission probability
-
-**Key Result:**
-
-* FSK latency dominated by framing and full-symbol integration
-* Hybrid latency dominated by short observation windows
-
----
-
-### 4. Noise–Power Tradeoff (`noise_power_tradeoff.py`)
-
-**Purpose:**
-Combine **measured SER** with **receiver energy models**.
-
-**Important Note:**
-
-* SER values are derived from simulations
-* No assumed exponential error models
-
-**Result:**
-
-* To achieve a given reliability, the hybrid receiver consumes significantly less energy
-* Demonstrates architectural efficiency rather than raw robustness
+A small synchronization overhead is explicitly included in latency modeling to ensure a fair comparison with the frame-based M-FSK receiver.
 
 ---
 
 ## Phase-2 Analytical Validation
 
-To justify simulation assumptions, three analytical bounds are included.
+Simulation assumptions are supported by simple analytical bounds.
+
+### Frequency Estimation Latency
+
+```
+T_freq = N_cycles / f
+```
+
+Frequency estimation requires observing multiple cycles; this is explicitly included in the latency model.
 
 ---
 
-### (a) Frequency Estimation Latency Bound
+### Frequency Estimation Accuracy (CRLB Intuition)
 
-Frequency estimation requires observing multiple signal cycles:
-
+```
 Var(f̂) ≥ K / (T_obs² · SNR)
+```
 
-* N_cycles typically 8–20
-* This bound is explicitly included in latency modeling
-
----
-
-### (b) Frequency Estimation Accuracy Bound (CRLB Intuition)
-
-For non-coherent frequency estimation in AWGN:
-
-Var(f̂) ≥ K / (T_obs² · SNR)
-
-This establishes an **accuracy–latency tradeoff**, justifying the chosen observation window.
+This explains the observed latency–accuracy tradeoff.
 
 ---
 
-### (c) Oscillator Stability Bound
+### Oscillator Stability Requirement
 
-Oscillator drift:
-
+```
 Δf = f · ppm · 10⁻⁶
+```
 
 Design requirement:
 
+```
 Δf · T_freq ≪ 1
+```
 
-This implies that **short-term stability**, not long-term accuracy, is sufficient.
+Only **short-term oscillator stability** is required, which is achievable with low-cost oscillators.
+
+---
+
+## Simulation Files
+
+```
+simulations/
+├── noise_robustness_fsk_waveform.py   # AWGN + Rayleigh fading analysis
+├── frequency_estimation.py            # Zero-crossing frequency estimator
+├── power_efficiency.py                # Receiver energy modeling
+├── latency.py                         # Latency with explicit observation times
+├── noise_power_tradeoff.py            # Derived SER–energy tradeoff
+```
 
 ---
 
 ## Simulation Scope and Limitations
 
-The simulations are intended to evaluate **architectural tradeoffs**, not circuit-level performance.
-
-**Limitations:**
-
-* AWGN channel only
-* No multipath fading or interference
+* AWGN and Rayleigh fading only
+* No multipath delay spread
 * No Doppler modeling
 * No PA non-linearity
 * No ADC quantization modeling
-* Transmitter energy not optimized
+* Receiver-side focus
 * Not intended to approach Shannon capacity
 
-These assumptions allow isolation of **power and latency effects**.
+These assumptions isolate **architectural tradeoffs**.
 
 ---
 
 ## Key Takeaways
 
-| Aspect           | FSK        | Hybrid Ratio |
-| ---------------- | ---------- | ------------ |
-| Noise robustness | High       | Moderate     |
-| Receiver energy  | High       | Low          |
-| Latency          | High       | Very low     |
-| DSP complexity   | High       | Minimal      |
-| Design goal      | Robustness | Efficiency   |
+| Aspect           | M-FSK              | Hybrid Ratio        |
+| ---------------- | ------------------ | ------------------- |
+| Noise robustness | High               | Moderate            |
+| Receiver energy  | High               | Low                 |
+| Latency          | High (frame-based) | Low (symbol-based)  |
+| DSP complexity   | High               | Minimal             |
+| Applicability    | General            | Controlled channels |
 
 ---
 
 ## Intended Use Cases
 
-* Ultra-low-power IoT nodes
-* Embedded control signaling
-* Safety or event-triggered communication
-* Short-range sensor networks
-
----
-
-## Installation
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## Running Simulations
-
-```bash
-python simulations/noise_robustness_fsk_waveform.py
-python simulations/power_efficiency.py
-python simulations/latency.py
-python simulations/noise_power_tradeoff.py
-```
+* Wake-up radios
+* IoT beacons
+* Event-triggered signaling
+* Short-range control communication
 
 ---
 
@@ -332,4 +311,7 @@ Electronics and Communication Engineering
 
 ## Final Note
 
-This repository explores a **receiver-centric communication architecture** where **energy efficiency and latency** are prioritized over spectral efficiency. The results demonstrate that meaningful communication is possible using simple physical relationships when system-level tradeoffs are explicitly acknowledged.
+This work demonstrates that **carefully bounded physical-layer simplification** can yield meaningful gains in energy efficiency and latency. Rather than competing with digital modulation universally, the proposed architecture serves as a **specialized communication primitive** for constrained, low-power environments.
+
+
+Just tell me what you want to do next.
