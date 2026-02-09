@@ -312,6 +312,3 @@ Electronics and Communication Engineering
 ## Final Note
 
 This work demonstrates that **carefully bounded physical-layer simplification** can yield meaningful gains in energy efficiency and latency. Rather than competing with digital modulation universally, the proposed architecture serves as a **specialized communication primitive** for constrained, low-power environments.
-
-
-Just tell me what you want to do next.
